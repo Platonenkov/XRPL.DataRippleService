@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32929.385
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XRPL.DataRippleService", "XRPL.DataRippleService\XRPL.DataRippleService.csproj", "{51392128-F990-493E-B64D-76B77FBAFD70}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleClient.Test", "Test\ConsoleClient.Test\ConsoleClient.Test.csproj", "{424B62EE-D08A-4734-83C1-E5D7D68545AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{51392128-F990-493E-B64D-76B77FBAFD70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51392128-F990-493E-B64D-76B77FBAFD70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51392128-F990-493E-B64D-76B77FBAFD70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51392128-F990-493E-B64D-76B77FBAFD70}.Release|Any CPU.Build.0 = Release|Any CPU
+		{424B62EE-D08A-4734-83C1-E5D7D68545AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{424B62EE-D08A-4734-83C1-E5D7D68545AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{424B62EE-D08A-4734-83C1-E5D7D68545AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{424B62EE-D08A-4734-83C1-E5D7D68545AA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EC6826C6-13B8-4AA9-9873-93A1720EAC2A}
+	EndGlobalSection
+EndGlobal

@@ -9,7 +9,12 @@ namespace XRPL.DataRippleService
         public DataRippleClient() : base("http://data.ripple.com/")
         {
         }
-
+        /// <summary>
+        /// Retrieve an exchange rate for a given currency pair at a specific time.
+        /// </summary>
+        /// <param name="buy">Base currency of the pair, as a Currency Code, followed by + and the issuer Address. Omit the + and the issuer for XRP.</param>
+        /// <param name="pay">Counter currency of the pair, as a Currency Code, followed by + and the issuer Address. Omit the + and the issuer for XRP.</param>
+        /// <returns></returns>
         public async Task<double> ExchangesRates(RippleServiceCurrency buy, RippleServiceCurrency pay)
         {
             var buy_name = buy.CurrencyCode == "XRP" ? "XRP" : $"{buy.CurrencyCode}+{buy.Issuer}";
@@ -18,6 +23,15 @@ namespace XRPL.DataRippleService
             var result = await GetAsync<ExchangeRate>(server);
             return result.Rate;
         }
+
+        /// <summary>
+        /// Retrieve Exchanges for a given currency pair over time. Results can be returned as individual exchanges or aggregated to a specific list of intervals
+        /// </summary>
+        /// <param name="buy">Base currency of the pair, as a Currency Code, followed by + and the issuer Address unless it's XRP.</param>
+        /// <param name="pay">Counter currency of the pair, as a Currency Code, followed by + and the issuer Address unless it's XRP.</param>
+        /// <param name="limit">limit</param>
+        /// <param name="descending">sorting</param>
+        /// <returns></returns>
         public async Task<DataRippleExchangesResponse> Exchanges(RippleServiceCurrency buy, RippleServiceCurrency pay, int limit = 50, bool descending = true)
         {
             var buy_name = buy.CurrencyCode == "XRP" ? "XRP" : $"{buy.CurrencyCode}+{buy.Issuer}";

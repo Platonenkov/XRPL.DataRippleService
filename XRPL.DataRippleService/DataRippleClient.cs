@@ -1,4 +1,6 @@
-﻿using XRPL.DataRippleService.Exchanges;
+﻿using System.Threading.Channels;
+
+using XRPL.DataRippleService.Exchanges;
 using XRPL.DataRippleService.Request;
 
 namespace XRPL.DataRippleService
@@ -38,6 +40,83 @@ namespace XRPL.DataRippleService
             var pay_name = pay.CurrencyCode == "XRP" ? "XRP" : $"{pay.CurrencyCode}+{pay.Issuer}";
             string server = $"v2/exchanges/{buy_name}/{pay_name}?descending={descending}&limit={limit}";
             var result = await GetAsync<DataRippleExchangesResponse>(server);
+            return result;
+        }
+        /// <summary>
+        /// Retrieve Exchanges for a given currency pair over time. Results can be returned as individual exchanges or aggregated to a specific list of intervals
+        /// </summary>
+        /// <param name="request">request form<</param>
+        /// <param name="Progress"></param>
+        /// <param name="Cancel"></param>
+        /// <returns></returns>
+        public async Task<DataRippleExchangesResponse> Exchanges(ExchangesRequest request,
+            IProgress<(double?, string, string, bool?)> Progress = null, CancellationToken Cancel = default)
+        {
+            var result = await ExchangesBase(request,Progress, Cancel);
+            Cancel.ThrowIfCancellationRequested();
+            if (result is null)
+                return null;
+            Progress?.Report((null, $"Got {result.count}, marker: {result.marker}", null, null)!);
+            if (string.IsNullOrWhiteSpace(result.marker))
+                return result;
+            var marker = result.marker;
+            var counter = 0;
+            while (!string.IsNullOrWhiteSpace(marker))
+            {
+                result.marker = marker;
+                Cancel.ThrowIfCancellationRequested();
+                var add = await ExchangesBase(request, Progress, Cancel);
+                switch (add)
+                {
+                    //todo null when to many request
+                    case null when counter > 5: return result;
+                    case null when counter <= 5:
+                        await Task.Delay(2000, Cancel);
+                        counter++;
+                        continue;
+                }
+
+                Progress?.Report((null, $"Got {add.count}, mmarker: {add.marker}", null, null)!);
+
+                counter = 0;
+                marker = add.marker;
+                result.exchanges.AddRange(add.exchanges);
+                result.count += add.count;
+            }
+            return result;
+
+        }
+        /// <summary>
+        /// Retrieve Exchanges for a given currency pair over time. Results can be returned as individual exchanges or aggregated to a specific list of intervals
+        /// </summary>
+        /// <param name="request">request form<</param>
+        /// <param name="Progress"></param>
+        /// <param name="Cancel"></param>
+        /// <returns></returns>
+        private async Task<DataRippleExchangesResponse> ExchangesBase(ExchangesRequest request,
+            IProgress<(double?, string, string, bool?)> Progress = null, CancellationToken Cancel = default)
+        {
+            Cancel.ThrowIfCancellationRequested();
+            var buy_name = request.BaseCurrency.CurrencyCode == "XRP" ? "XRP" : $"{request.BaseCurrency.CurrencyCode}+{request.BaseCurrency.Issuer}";
+            var pay_name = request.CounterCurrency.CurrencyCode == "XRP" ? "XRP" : $"{request.CounterCurrency.CurrencyCode}+{request.CounterCurrency.Issuer}";
+            string server = $"v2/exchanges/{buy_name}/{pay_name}?format={request.Format}";
+            if (request.StartTime is { })
+                server += $"&start={request.Start}";
+            if (request.EndTime is { })
+                server += $"&end={request.End}";
+            if (!string.IsNullOrWhiteSpace(request.Marker))
+                server += $"&marker={request.Marker}";
+            if (request.Limit is { } limit)
+                server += $"&limit={limit}";
+            if (request.Descending is { } des)
+                server += $"&descending={des}";
+            if (request.AutoBridged is { } auto)
+                server += $"&autobridged={auto}";
+            if (request.Reduce is { } reduce)
+                server += $"&reduce={reduce}";
+            if (request.Interval is { } interval)
+                server += $"&interval={interval}";
+            var result = await GetAsync<DataRippleExchangesResponse>(server, Cancel);
             return result;
         }
 

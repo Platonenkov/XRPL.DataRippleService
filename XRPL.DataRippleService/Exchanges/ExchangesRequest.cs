@@ -18,10 +18,10 @@ namespace XRPL.DataRippleService.Exchanges
         /// <summary>
         /// If true, aggregate all individual results. The default is false.
         /// </summary>
-        public bool Reduce { get; set; }
+        public bool? Reduce { get; set; }
         /// <summary>
         /// If true, filter results to autobridged exchanges only.
         /// </summary>
-        public bool AutoBridged { get; set; }
+        public bool? AutoBridged { get; set; }
     }
 }

@@ -7,6 +7,9 @@ using XRPL.DataRippleService.Exchanges;
 using XRPL.DataRippleService.Extensions;
 using XRPL.DataRippleService.Request;
 
+
+
+
 await Test_BookExchanges();
 
 await Test_AccountHistory();
@@ -24,21 +27,33 @@ static async Task Test_BookExchanges()
             Console.WriteLine(p.Item2);
         });
     var ripple = new DataRippleClient();
-
-    var history = await ripple.Exchanges(new ExchangesRequest()
+    var request = new ExchangesRequest()
     {
         BaseCurrency = new RippleServiceCurrency()
         {
-            Issuer = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj",
-            CurrencyCode = "AnimaCoin"
+            CurrencyCode = "AnimaCoin",
+            Issuer = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj"
         },
-        CounterCurrency = new RippleServiceCurrency()
-        {
-            CurrencyCode = "XRP"
-        },
-        StartTime = DateTime.Now.ToUniversalTime() - TimeSpan.FromHours(1),
-        EndTime = null,
-    }, progress);
+        CounterCurrency = new RippleServiceCurrency(),
+        //StartTime = start,
+        //EndTime = end
+    };
+
+    var history = await ripple.Exchanges(request, progress);
+    //var history = await ripple.Exchanges(new ExchangesRequest()
+    //{
+    //    BaseCurrency = new RippleServiceCurrency()
+    //    {
+    //        Issuer = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj",
+    //        CurrencyCode = "AnimaCoin"
+    //    },
+    //    CounterCurrency = new RippleServiceCurrency()
+    //    {
+    //        CurrencyCode = "XRP"
+    //    },
+    //    StartTime = DateTime.Now.ToUniversalTime() - TimeSpan.FromHours(1),
+    //    EndTime = null,
+    //}, progress);
     Console.WriteLine(JObject.Parse(JsonConvert.SerializeObject(history)));
 
 }

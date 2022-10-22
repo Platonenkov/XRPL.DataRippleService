@@ -56,14 +56,14 @@ namespace XRPL.DataRippleService
             Cancel.ThrowIfCancellationRequested();
             if (result is null)
                 return null;
-            Progress?.Report((null, $"Got {result.count}, marker: {result.marker}", null, null)!);
+            Progress?.Report((null, $"Got {result.count},{Environment.NewLine}marker: {result.marker}", null, null)!);
             if (string.IsNullOrWhiteSpace(result.marker))
                 return result;
             var marker = result.marker;
             var counter = 0;
             while (!string.IsNullOrWhiteSpace(marker))
             {
-                result.marker = marker;
+                request.Marker = marker;
                 Cancel.ThrowIfCancellationRequested();
                 var add = await ExchangesBase(request, Progress, Cancel);
                 switch (add)
@@ -76,7 +76,7 @@ namespace XRPL.DataRippleService
                         continue;
                 }
 
-                Progress?.Report((null, $"Got {add.count}, mmarker: {add.marker}", null, null)!);
+                Progress?.Report((null, $"Got {add.count},{Environment.NewLine}marker: {add.marker}", null, null)!);
 
                 counter = 0;
                 marker = add.marker;
@@ -133,7 +133,7 @@ namespace XRPL.DataRippleService
             if (response is null)
                 return null;
             Cancel.ThrowIfCancellationRequested();
-            Progress?.Report((null, $"Got {response.count}, mmarker: {response.marker}", null, null));
+            Progress?.Report((null, $"Got {response.count},{Environment.NewLine}marker: {response.marker}", null, null));
             if (!SkipLimit)
                 return response.balance_changes;
 
@@ -156,7 +156,7 @@ namespace XRPL.DataRippleService
                     counter++;
                     continue;
                 }
-                Progress?.Report((null, $"Got {response.count}, mmarker: {response.marker}", null, null));
+                Progress?.Report((null, $"Got {response.count},{Environment.NewLine}marker: {response.marker}", null, null));
                 counter = 0;
 
                 marker = response.marker;
@@ -225,7 +225,7 @@ namespace XRPL.DataRippleService
             Cancel.ThrowIfCancellationRequested();
             if (result is null)
                 return null;
-            Progress?.Report((null, $"Got {result.count}, mmarker: {result.marker}", null, null)!);
+            Progress?.Report((null, $"Got {result.count},{Environment.NewLine}marker: {result.marker}", null, null)!);
             if (string.IsNullOrWhiteSpace(result.marker))
                 return result;
             var marker = result.marker;
@@ -243,7 +243,7 @@ namespace XRPL.DataRippleService
                     counter++;
                     continue;
                 }
-                Progress?.Report((null, $"Got {add.count}, mmarker: {add.marker}", null, null)!);
+                Progress?.Report((null, $"Got {add.count},{Environment.NewLine}marker: {add.marker}", null, null)!);
 
                 counter = 0;
                 marker = add.marker;

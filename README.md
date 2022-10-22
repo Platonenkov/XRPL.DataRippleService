@@ -40,3 +40,51 @@ Account Methods:
 * [Get Account Reports - `GET /v2/accounts/{address}/reports`](#get-account-reports)
 * [Get Account Transaction Stats - `GET /v2/accounts/{address}/stats/transactions`](#get-account-transaction-stats)
 * [Get Account Value Stats - `GET /v2/accounts/{address}/stats/value`](#get-account-value-stats)
+
+```C#
+static async Task Test_AccountHistory()
+{
+
+    var ripple = new DataRippleClient();
+    
+    var history = await ripple.AccountExchanges(new AccounExchangesRequest()
+    {
+        Address = "rLiooJRSKeiNfRJcDBUhu4rcjQjGLWqa4p",
+        BaseCurrency = new RippleServiceCurrency()
+        {
+            CurrencyCode = "xBay",
+            Issuer = "rDVvK7xd2M6ZJr9a8suURWLqAeg7FyoDKT"
+        },
+        CounterCurrency = new RippleServiceCurrency() { CurrencyCode = "XRP" },
+        Limit = 50,
+        Descending = false,
+        StartTime = new DateTime(2022, 05, 01),
+        EndTime = DateTime.UtcNow
+    });
+    Console.WriteLine(JObject.Parse(JsonConvert.SerializeObject(history)));
+
+}
+
+static async Task Test_AccountBalanceChanges()
+{
+
+    var ripple = new DataRippleClient();
+
+    var values = await ripple.AccountBalanceChangesJson(
+        new AccountBalanceChangesRequest()
+        {
+            Address = "rLiooJRSKeiNfRJcDBUhu4rcjQjGLWqa4p",
+            Currency = "MRM",
+            StartTime = null,
+            EndTime = null,
+            Format = DataRippleResponseFormat.csv,
+            counterparty = "rNjQ9HZYiBk1WhuscDkmJRSc3gbrBqqAaQ",
+            Descending = false,
+            Limit = 100
+        });
+
+    var map = values.GroupByMaximumInDay().ToArray();
+    Console.WriteLine(JsonConvert.SerializeObject(map));
+
+}
+```

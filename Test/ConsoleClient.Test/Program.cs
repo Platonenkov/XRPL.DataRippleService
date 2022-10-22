@@ -6,6 +6,21 @@ using XRPL.DataRippleService.Enums;
 using XRPL.DataRippleService.Extensions;
 using XRPL.DataRippleService.Request;
 
+var ripple = new DataRippleClient();
+var progress = new Progress<(double? percent, string message, string title, bool? CanCancel)>(
+    (p) =>
+    {
+        Console.WriteLine(p.Item2);
+    });
+var response = await ripple.AccountBalanceChangesJson(
+    new AccountBalanceChangesRequest()
+    {
+        Address = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj",
+        StartTime = DateTime.Now - TimeSpan.FromDays(2),
+        EndTime = null,
+        Descending = false,
+        Limit = 5000
+    }, true,progress);
 
 
 await Test_AccountHistory();
@@ -41,7 +56,11 @@ static async Task Test_AccountBalanceChanges()
 {
 
     var ripple = new DataRippleClient();
-
+    var progress = new Progress<(double? percent, string message, string title, bool? CanCancel)>(
+        (p) =>
+        {
+            Console.WriteLine(p.Item2);
+        });
     var values = await ripple.AccountBalanceChangesJson(
         new AccountBalanceChangesRequest()
         {

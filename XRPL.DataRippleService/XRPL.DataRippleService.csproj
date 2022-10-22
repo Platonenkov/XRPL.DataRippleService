@@ -7,12 +7,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup>
-    <Version>1.0.0.0</Version>
-    <PackageReleaseNotes>Xrpl https://data.ripple.com service api</PackageReleaseNotes>
+    <Version>1.0.0.1</Version>
+    <PackageReleaseNotes>update limits, add progress and cancellation</PackageReleaseNotes>
     <SourceRevisionId>
       ^build_date$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))
     </SourceRevisionId>
-    <Description>This project will help you download trustline database</Description>
+    <Description>This project will help you use Xrpl https://data.ripple.com service api</Description>
     <PackageProjectUrl>https://github.com/Platonenkov/XRPL.DataRippleService</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Platonenkov/XRPL.DataRippleService</RepositoryUrl>
     <Copyright>https://github.com/Platonenkov</Copyright>

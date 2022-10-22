@@ -45,7 +45,7 @@ public abstract class BaseClient
     {
         var response = await _Client.GetAsync(url, Cancel);
         if (response.StatusCode == HttpStatusCode.NotFound || !response.IsSuccessStatusCode) return default;
-
+        Cancel.ThrowIfCancellationRequested();
         var data = await response.Content.ReadAsStringAsync(cancellationToken: Cancel);
         return string.IsNullOrWhiteSpace(data) ? default : JsonConvert.DeserializeObject<TEntity>(data, serializerSettings);
     }

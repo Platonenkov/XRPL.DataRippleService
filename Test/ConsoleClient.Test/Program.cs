@@ -35,8 +35,8 @@ static async Task Test_BookExchanges()
             Issuer = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj"
         },
         CounterCurrency = new RippleServiceCurrency(),
-        //StartTime = start,
-        //EndTime = end
+        StartTime = DateTime.Now.Date,
+        EndTime = DateTime.Now
     };
 
     var history = await ripple.Exchanges(request, progress);

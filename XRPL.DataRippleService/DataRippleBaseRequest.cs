@@ -6,9 +6,9 @@ namespace XRPL.DataRippleService
     {
         /// <summary>
         /// Filter results to this time and later.
-        /// Standardized UTC format yyyy-MM-ddThh:mm:ssZ
+        /// Standardized UTC format yyyy-MM-ddTHH:mm:ssZ
         /// </summary>
-        public string Start => StartTime is { } time ? $"{time:yyyy-MM-ddThh:mm:ssZ}" : null;
+        public string Start => StartTime is { } time ? $"{time:yyyy-MM-ddTHH:mm:ssZ}" : null;
         /// <summary>
         /// Filter results to this time and later.
         /// </summary>
@@ -16,9 +16,9 @@ namespace XRPL.DataRippleService
 
         /// <summary>
         /// Filter results to this time and earlier.
-        /// Standardized UTC format yyyy-MM-ddThh:mm:ssZ
+        /// Standardized UTC format yyyy-MM-ddTHH:mm:ssZ
         /// </summary>
-        public string End => EndTime is { } time ? $"{time:yyyy-MM-ddThh:mm:ssZ}" : null;
+        public string End => EndTime is { } time ? $"{time:yyyy-MM-ddTHH:mm:ssZ}" : null;
         /// <summary>
         /// Filter results to this time and earlier.
         /// </summary>

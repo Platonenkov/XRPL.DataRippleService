@@ -3,25 +3,11 @@ using Newtonsoft.Json.Linq;
 
 using XRPL.DataRippleService;
 using XRPL.DataRippleService.Enums;
+using XRPL.DataRippleService.Exchanges;
 using XRPL.DataRippleService.Extensions;
 using XRPL.DataRippleService.Request;
 
-var ripple = new DataRippleClient();
-var progress = new Progress<(double? percent, string message, string title, bool? CanCancel)>(
-    (p) =>
-    {
-        Console.WriteLine(p.Item2);
-    });
-var response = await ripple.AccountBalanceChangesJson(
-    new AccountBalanceChangesRequest()
-    {
-        Address = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj",
-        StartTime = DateTime.Now - TimeSpan.FromDays(2),
-        EndTime = null,
-        Descending = false,
-        Limit = 5000
-    }, true,progress);
-
+await Test_BookExchanges();
 
 await Test_AccountHistory();
 await Test_AccountBalanceChanges();
@@ -29,11 +15,43 @@ await Test_AccountBalanceChanges();
 Console.WriteLine("Hello, from XrplDaddy!");
 
 
-static async Task Test_AccountHistory()
+static async Task Test_BookExchanges()
 {
 
+    var progress = new Progress<(double? percent, string message, string title, bool? CanCancel)>(
+        (p) =>
+        {
+            Console.WriteLine(p.Item2);
+        });
     var ripple = new DataRippleClient();
-    
+
+    var history = await ripple.Exchanges(new ExchangesRequest()
+    {
+        BaseCurrency = new RippleServiceCurrency()
+        {
+            Issuer = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj",
+            CurrencyCode = "AnimaCoin"
+        },
+        CounterCurrency = new RippleServiceCurrency()
+        {
+            CurrencyCode = "XRP"
+        },
+        StartTime = DateTime.Now.ToUniversalTime() - TimeSpan.FromHours(1),
+        EndTime = null,
+    }, progress);
+    Console.WriteLine(JObject.Parse(JsonConvert.SerializeObject(history)));
+
+}
+static async Task Test_AccountHistory()
+{
+    var progress = new Progress<(double? percent, string message, string title, bool? CanCancel)>(
+        (p) =>
+        {
+            Console.WriteLine(p.Item2);
+        });
+
+    var ripple = new DataRippleClient();
+
     var history = await ripple.AccountExchanges(new AccounExchangesRequest()
     {
         Address = "rLiooJRSKeiNfRJcDBUhu4rcjQjGLWqa4p",
@@ -47,7 +65,7 @@ static async Task Test_AccountHistory()
         Descending = false,
         StartTime = new DateTime(2022, 05, 01),
         EndTime = DateTime.UtcNow
-    });
+    }, progress);
     Console.WriteLine(JObject.Parse(JsonConvert.SerializeObject(history)));
 
 }
@@ -72,7 +90,7 @@ static async Task Test_AccountBalanceChanges()
             counterparty = "rNjQ9HZYiBk1WhuscDkmJRSc3gbrBqqAaQ",
             Descending = false,
             Limit = 100
-        });
+        }, Progress: progress);
 
     var map = values.GroupByMaximumInDay().ToArray();
     Console.WriteLine(JsonConvert.SerializeObject(map));

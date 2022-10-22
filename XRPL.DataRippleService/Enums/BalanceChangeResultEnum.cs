@@ -12,4 +12,6 @@ public enum BalanceChangeResultEnum
     Sent,
     /// <summary> Receive token </summary>
     Receive,
+    /// <summary> Burn token </summary>
+    Burn,
 }

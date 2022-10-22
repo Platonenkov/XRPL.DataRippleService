@@ -7,8 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup>
-    <Version>1.0.0.3</Version>
-    <PackageReleaseNotes>Book exchanges fix</PackageReleaseNotes>
+    <Version>1.0.0.4</Version>
+    <PackageReleaseNotes>Timestamp fix</PackageReleaseNotes>
     <SourceRevisionId>
       ^build_date$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))
     </SourceRevisionId>

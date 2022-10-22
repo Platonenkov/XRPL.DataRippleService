@@ -29,10 +29,11 @@ namespace XRPL.DataRippleService
         /// POSSIBLE ERROR when True
         /// </summary>
         public bool? Descending { get; set; }
+
         /// <summary>
         /// Maximum results per page. The default is 200. Cannot be more than 1000.
         /// </summary>
-        public uint? Limit { get; set; }
+        public uint? Limit { get; set; } = 1000;
         /// <summary>
         /// Pagination key from previously returned response.
         /// </summary>

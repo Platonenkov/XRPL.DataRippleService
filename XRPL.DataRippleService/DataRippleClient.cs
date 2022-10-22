@@ -32,7 +32,7 @@ namespace XRPL.DataRippleService
         /// <param name="limit">limit</param>
         /// <param name="descending">sorting</param>
         /// <returns></returns>
-        public async Task<DataRippleExchangesResponse> Exchanges(RippleServiceCurrency buy, RippleServiceCurrency pay, int limit = 50, bool descending = true)
+        public async Task<DataRippleExchangesResponse> Exchanges(RippleServiceCurrency buy, RippleServiceCurrency pay, int limit = 1000, bool descending = true)
         {
             var buy_name = buy.CurrencyCode == "XRP" ? "XRP" : $"{buy.CurrencyCode}+{buy.Issuer}";
             var pay_name = pay.CurrencyCode == "XRP" ? "XRP" : $"{pay.CurrencyCode}+{pay.Issuer}";
@@ -47,11 +47,14 @@ namespace XRPL.DataRippleService
         /// <param name="request">request form</param>
         /// <param name="SkipLimit">if true, will receive full data without limiting data </param>
         /// <returns></returns>
-        public async Task<List<BalanceChangeData>> AccountBalanceChangesJson(AccountBalanceChangesRequest request, bool SkipLimit = false)
+        public async Task<List<BalanceChangeData>> AccountBalanceChangesJson(AccountBalanceChangesRequest request, bool SkipLimit = false,
+            IProgress<(double?, string, string, bool?)> Progress = null,CancellationToken Cancel = default)
         {
-            var response = await AccountBalanceChangesJsonBase(request);
+            var response = await AccountBalanceChangesJsonBase(request,Cancel);
             if (response is null)
                 return null;
+            Cancel.ThrowIfCancellationRequested();
+            Progress?.Report((null, $"Got {response.count}, mmarker: {response.marker}", null, null));
             if (!SkipLimit)
                 return response.balance_changes;
 
@@ -60,15 +63,21 @@ namespace XRPL.DataRippleService
             var counter = 0;
             while (!string.IsNullOrWhiteSpace(marker))
             {
+                Cancel.ThrowIfCancellationRequested();
                 request.Marker = marker;
-                response = await AccountBalanceChangesJsonBase(request);
+                response = await AccountBalanceChangesJsonBase(request, Cancel);
+                Cancel.ThrowIfCancellationRequested();
+
                 if (response is null && counter > 5) //todo null when to many request
                     return result;
                 if (response is null && counter <= 5)
                 {
+                    await Task.Delay(2000, Cancel);
+
                     counter++;
                     continue;
                 }
+                Progress?.Report((null, $"Got {response.count}, mmarker: {response.marker}", null, null));
                 counter = 0;
 
                 marker = response.marker;
@@ -83,7 +92,7 @@ namespace XRPL.DataRippleService
         /// </summary>
         /// <param name="request">request form</param>
         /// <returns></returns>
-        public async Task<BalanceChangeResponse> AccountBalanceChangesJsonBase(AccountBalanceChangesRequest request)
+        public async Task<BalanceChangeResponse> AccountBalanceChangesJsonBase(AccountBalanceChangesRequest request, CancellationToken Cancel)
         {
             string server = $"v2/accounts/{request.Address}/balance_changes?";
             if (!string.IsNullOrWhiteSpace(request.Currency))
@@ -104,7 +113,7 @@ namespace XRPL.DataRippleService
             //if (request.Format is { } format)
             server += "&format=json";
 
-            var response = await GetAsync<BalanceChangeResponse>(server);
+            var response = await GetAsync<BalanceChangeResponse>(server, Cancel);
 
             return response;
         }
@@ -114,8 +123,10 @@ namespace XRPL.DataRippleService
         /// </summary>
         /// <param name="request">request, ATTENTION - possible null when descending == true</param>
         /// <returns></returns>
-        public async Task<DataRippleExchangesResponse> AccountExchanges(AccounExchangesRequest request)
+        public async Task<DataRippleExchangesResponse> AccountExchanges(AccounExchangesRequest request,
+            IProgress<(double?, string, string, bool?)> Progress = null, CancellationToken Cancel = default)
         {
+            Cancel.ThrowIfCancellationRequested();
             var buy_name = request.BaseCurrency.CurrencyCode == "XRP" ? "XRP" : $"{request.BaseCurrency.CurrencyCode}+{request.BaseCurrency.Issuer}";
             var pay_name = request.CounterCurrency.CurrencyCode == "XRP" ? "XRP" : $"{request.CounterCurrency.CurrencyCode}+{request.CounterCurrency.Issuer}";
             string server = $"v2/accounts/{request.Address}/exchanges/{buy_name}/{pay_name}?format={request.Format}";
@@ -131,23 +142,29 @@ namespace XRPL.DataRippleService
                 server += $"&descending={des}";
 
 
-            var result = await GetAsync<DataRippleExchangesResponse>(server);
+            var result = await GetAsync<DataRippleExchangesResponse>(server, Cancel);
+            Cancel.ThrowIfCancellationRequested();
             if (result is null)
                 return null;
+            Progress?.Report((null, $"Got {result.count}, mmarker: {result.marker}", null, null)!);
             if (string.IsNullOrWhiteSpace(result.marker))
                 return result;
             var marker = result.marker;
             var counter = 0;
             while (!string.IsNullOrWhiteSpace(marker))
             {
-                var add = await GetAsync<DataRippleExchangesResponse>($"{server}&marker={marker}");
+                Cancel.ThrowIfCancellationRequested();
+                var add = await GetAsync<DataRippleExchangesResponse>($"{server}&marker={marker}", Cancel);
                 if (add is null && counter > 5) //todo null when to many request
                     return result;
                 if (add is null && counter <= 5)
                 {
+                    await Task.Delay(2000, Cancel);
+
                     counter++;
                     continue;
                 }
+                Progress?.Report((null, $"Got {add.count}, mmarker: {add.marker}", null, null)!);
 
                 counter = 0;
                 marker = add.marker;

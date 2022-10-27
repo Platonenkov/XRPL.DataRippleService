@@ -1,5 +1,7 @@
-﻿using System.Threading.Channels;
+﻿using System.Net;
+using System.Threading.Channels;
 
+using XRPL.DataRippleService.Balances;
 using XRPL.DataRippleService.Exchanges;
 using XRPL.DataRippleService.Request;
 
@@ -23,7 +25,7 @@ namespace XRPL.DataRippleService
             var pay_name = pay.CurrencyCode == "XRP" ? "XRP" : $"{pay.CurrencyCode}+{pay.Issuer}";
             string server = $"v2/exchange_rates/{buy_name}/{pay_name}";
             var result = await GetAsync<ExchangeRate>(server);
-            return result.Rate;
+            return result.Data.Rate;
         }
 
         /// <summary>
@@ -34,7 +36,7 @@ namespace XRPL.DataRippleService
         /// <param name="limit">limit</param>
         /// <param name="descending">sorting</param>
         /// <returns></returns>
-        public async Task<DataRippleExchangesResponse> Exchanges(RippleServiceCurrency buy, RippleServiceCurrency pay, int limit = 1000, bool descending = true)
+        public async Task<ServerResponse<DataRippleExchangesResponse>> Exchanges(RippleServiceCurrency buy, RippleServiceCurrency pay, int limit = 100, bool descending = true)
         {
             var buy_name = buy.CurrencyCode == "XRP" ? "XRP" : $"{buy.CurrencyCode}+{buy.Issuer}";
             var pay_name = pay.CurrencyCode == "XRP" ? "XRP" : $"{pay.CurrencyCode}+{pay.Issuer}";
@@ -45,43 +47,46 @@ namespace XRPL.DataRippleService
         /// <summary>
         /// Retrieve Exchanges for a given currency pair over time. Results can be returned as individual exchanges or aggregated to a specific list of intervals
         /// </summary>
-        /// <param name="request">request form<</param>
+        /// <param name="request">request form</param>
         /// <param name="Progress"></param>
         /// <param name="Cancel"></param>
         /// <returns></returns>
-        public async Task<DataRippleExchangesResponse> Exchanges(ExchangesRequest request,
+        public async Task<ServerResponse<DataRippleExchangesResponse>> Exchanges(ExchangesRequest request,
             IProgress<(double?, string, string, bool?)> Progress = null, CancellationToken Cancel = default)
         {
-            var result = await ExchangesBase(request,Progress, Cancel);
+            var result = await ExchangesBase(request, Progress, Cancel);
             Cancel.ThrowIfCancellationRequested();
-            if (result is null)
-                return null;
-            Progress?.Report((null, $"Got {result.count},{Environment.NewLine}marker: {result.marker}", null, null)!);
-            if (string.IsNullOrWhiteSpace(result.marker))
+            if (!result.HasData)
                 return result;
-            var marker = result.marker;
+            Progress?.Report((null, $"Got {result.Data.count},{Environment.NewLine}marker: {result.Data.marker}", null, null)!);
+            if (string.IsNullOrWhiteSpace(result.Data.marker))
+                return result;
+            var marker = result.Data.marker;
             var counter = 0;
             while (!string.IsNullOrWhiteSpace(marker))
             {
                 request.Marker = marker;
                 Cancel.ThrowIfCancellationRequested();
                 var add = await ExchangesBase(request, Progress, Cancel);
-                switch (add)
+                switch (add.HasData)
                 {
+                    case true: break;
                     //todo null when to many request
-                    case null when counter > 5: return result;
-                    case null when counter <= 5:
-                        await Task.Delay(2000, Cancel);
-                        counter++;
-                        continue;
+                    case false when counter > 5: return result;
+                    case false when counter <= 5:
+                        {
+                            await Task.Delay(2000, Cancel);
+                            counter++;
+                            continue;
+                        }
                 }
 
-                Progress?.Report((null, $"Got {add.count},{Environment.NewLine}marker: {add.marker}", null, null)!);
+                Progress?.Report((null, $"Got {add.Data.count},{Environment.NewLine}marker: {add.Data.marker}", null, null)!);
 
                 counter = 0;
-                marker = add.marker;
-                result.exchanges.AddRange(add.exchanges);
-                result.count += add.count;
+                marker = add.Data.marker;
+                result.Data.exchanges.AddRange(add.Data.exchanges);
+                result.Data.count += add.Data.count;
             }
             return result;
 
@@ -93,7 +98,7 @@ namespace XRPL.DataRippleService
         /// <param name="Progress"></param>
         /// <param name="Cancel"></param>
         /// <returns></returns>
-        private async Task<DataRippleExchangesResponse> ExchangesBase(ExchangesRequest request,
+        private async Task<ServerResponse<DataRippleExchangesResponse>> ExchangesBase(ExchangesRequest request,
             IProgress<(double?, string, string, bool?)> Progress = null, CancellationToken Cancel = default)
         {
             Cancel.ThrowIfCancellationRequested();
@@ -126,44 +131,48 @@ namespace XRPL.DataRippleService
         /// <param name="request">request form</param>
         /// <param name="SkipLimit">if true, will receive full data without limiting data </param>
         /// <returns></returns>
-        public async Task<List<BalanceChangeData>> AccountBalanceChangesJson(AccountBalanceChangesRequest request, bool SkipLimit = false,
-            IProgress<(double?, string, string, bool?)> Progress = null,CancellationToken Cancel = default)
+        public async Task<ServerResponse<BalanceChangeResponse>> AccountBalanceChangesJson(AccountBalanceChangesRequest request, bool SkipLimit = false,
+            IProgress<(double?, string, string, bool?)> Progress = null, CancellationToken Cancel = default)
         {
-            var response = await AccountBalanceChangesJsonBase(request,Cancel);
+            var response = await AccountBalanceChangesJsonBase(request, Cancel);
             if (response is null)
                 return null;
+            if (!response.HasData)
+                return response;
             Cancel.ThrowIfCancellationRequested();
-            Progress?.Report((null, $"Got {response.count},{Environment.NewLine}marker: {response.marker}", null, null));
+            Progress?.Report((null, $"Got {response.Data.count},{Environment.NewLine}marker: {response.Data.marker}", null, null));
             if (!SkipLimit)
-                return response.balance_changes;
+                return response;
 
-            var result = response.balance_changes;
-            var marker = response.marker;
+            var marker = response.Data.marker;
             var counter = 0;
             while (!string.IsNullOrWhiteSpace(marker))
             {
                 Cancel.ThrowIfCancellationRequested();
                 request.Marker = marker;
-                response = await AccountBalanceChangesJsonBase(request, Cancel);
+                var new_response = await AccountBalanceChangesJsonBase(request, Cancel);
                 Cancel.ThrowIfCancellationRequested();
 
-                if (response is null && counter > 5) //todo null when to many request
-                    return result;
-                if (response is null && counter <= 5)
+                switch (new_response.HasData)
                 {
-                    await Task.Delay(2000, Cancel);
-
-                    counter++;
-                    continue;
+                    case true: break;
+                    //todo null when to many request
+                    case false when counter > 5: return response;
+                    case false when counter <= 5:
+                        await Task.Delay(2000, Cancel);
+                        counter++;
+                        continue;
                 }
-                Progress?.Report((null, $"Got {response.count},{Environment.NewLine}marker: {response.marker}", null, null));
+
+                Progress?.Report((null, $"Got {new_response.Data.count},{Environment.NewLine}marker: {new_response.Data.marker}", null, null)!);
                 counter = 0;
 
-                marker = response.marker;
-                result.AddRange(response.balance_changes);
+                marker = new_response.Data.marker;
+                response.Data.balance_changes.AddRange(response.Data.balance_changes);
+                response.Data.count = response.Data.balance_changes.Count;
             }
 
-            return result;
+            return response;
         }
         /// <summary>
         /// Retrieve Balance changes for a given account over time.<br/>
@@ -171,7 +180,7 @@ namespace XRPL.DataRippleService
         /// </summary>
         /// <param name="request">request form</param>
         /// <returns></returns>
-        public async Task<BalanceChangeResponse> AccountBalanceChangesJsonBase(AccountBalanceChangesRequest request, CancellationToken Cancel)
+        public async Task<ServerResponse<BalanceChangeResponse>> AccountBalanceChangesJsonBase(AccountBalanceChangesRequest request, CancellationToken Cancel)
         {
             string server = $"v2/accounts/{request.Address}/balance_changes?";
             if (!string.IsNullOrWhiteSpace(request.Currency))
@@ -202,7 +211,7 @@ namespace XRPL.DataRippleService
         /// </summary>
         /// <param name="request">request, ATTENTION - possible null when descending == true</param>
         /// <returns></returns>
-        public async Task<DataRippleExchangesResponse> AccountExchanges(AccounExchangesRequest request,
+        public async Task<ServerResponse<DataRippleExchangesResponse>> AccountExchanges(AccounExchangesRequest request,
             IProgress<(double?, string, string, bool?)> Progress = null, CancellationToken Cancel = default)
         {
             Cancel.ThrowIfCancellationRequested();
@@ -223,35 +232,97 @@ namespace XRPL.DataRippleService
 
             var result = await GetAsync<DataRippleExchangesResponse>(server, Cancel);
             Cancel.ThrowIfCancellationRequested();
-            if (result is null)
-                return null;
-            Progress?.Report((null, $"Got {result.count},{Environment.NewLine}marker: {result.marker}", null, null)!);
-            if (string.IsNullOrWhiteSpace(result.marker))
+            if (!result.HasData)
                 return result;
-            var marker = result.marker;
+            Progress?.Report((null, $"Got {result.Data.count},{Environment.NewLine}marker: {result.Data.marker}", null, null)!);
+            if (string.IsNullOrWhiteSpace(result.Data.marker))
+                return result;
+            var marker = result.Data.marker;
             var counter = 0;
             while (!string.IsNullOrWhiteSpace(marker))
             {
                 Cancel.ThrowIfCancellationRequested();
                 var add = await GetAsync<DataRippleExchangesResponse>($"{server}&marker={marker}", Cancel);
-                if (add is null && counter > 5) //todo null when to many request
-                    return result;
-                if (add is null && counter <= 5)
+                switch (add.HasData)
                 {
-                    await Task.Delay(2000, Cancel);
+                    case true: break;
+                    //todo null when to many request
+                    case false when counter > 5: return result;
+                    case false when counter <= 5:
+                        await Task.Delay(2000, Cancel);
 
-                    counter++;
-                    continue;
+                        counter++;
+                        continue;
                 }
-                Progress?.Report((null, $"Got {add.count},{Environment.NewLine}marker: {add.marker}", null, null)!);
+
+                Progress?.Report((null, $"Got {add.Data.count},{Environment.NewLine}marker: {add.Data.marker}", null, null)!);
 
                 counter = 0;
-                marker = add.marker;
-                result.exchanges.AddRange(add.exchanges);
-                result.count += add.count;
+                marker = add.Data.marker;
+                result.Data.exchanges.AddRange(add.Data.exchanges);
+                result.Data.count += add.Data.count;
             }
             return result;
         }
 
+
+        public async Task<ServerResponse<DataRippleAccountBalancesResponse>> AccountBalances(
+            BalancesRequest request,
+            IProgress<(double?, string, string, bool?)> Progress = null, CancellationToken Cancel = default)
+        {
+            Cancel.ThrowIfCancellationRequested();
+            string server = $"/v2/accounts/{request.Address}/balances?format={request.Format}";
+            if (!string.IsNullOrWhiteSpace(request.ledger_hash))
+                server += $"&ledger_hash={request.ledger_hash}";
+            if (request.ledger_index is { })
+                server += $"&ledger_index={request.ledger_index}";
+            if (request.Date is { })
+                server += $"&date={request.date}";
+            if (!string.IsNullOrWhiteSpace(request.Currency))
+                server += $"&currency={request.Currency}";
+            if (!string.IsNullOrWhiteSpace(request.Counterparty))
+                server += $"&counterparty={request.Counterparty}";
+            if (!string.IsNullOrWhiteSpace(request.Marker))
+                server += $"&marker={request.Marker}";
+            if (request.Limit is { } limit)
+                server += $"&limit={limit}";
+            else
+                server += $"&limit=all";
+
+
+            var result = await GetAsync<DataRippleAccountBalancesResponse>(server, Cancel);
+            Cancel.ThrowIfCancellationRequested();
+            if (!result.HasData)
+                return result;
+            Progress?.Report((null, $"Got {result.Data.balances.Count},{Environment.NewLine}marker: {result.Data.marker}", null, null)!);
+            if (string.IsNullOrWhiteSpace(result.Data.marker))
+                return result;
+            var marker = result.Data.marker;
+            var counter = 0;
+            while (!string.IsNullOrWhiteSpace(marker))
+            {
+                Cancel.ThrowIfCancellationRequested();
+                var add = await GetAsync<DataRippleAccountBalancesResponse>($"{server}&marker={marker}", Cancel);
+                switch (add.HasData)
+                {
+                    case true: break;
+                    //todo null when to many request
+                    case false when counter > 5: return result;
+                    case false when counter <= 5:
+                        await Task.Delay(2000, Cancel);
+
+                        counter++;
+                        continue;
+                }
+
+                Progress?.Report((null, $"Got {add.Data.balances.Count},{Environment.NewLine}marker: {add.Data.marker}", null, null)!);
+
+                counter = 0;
+                marker = add.Data.marker;
+                result.Data.balances.AddRange(add.Data.balances);
+            }
+            return result;
+
+        }
     }
 }

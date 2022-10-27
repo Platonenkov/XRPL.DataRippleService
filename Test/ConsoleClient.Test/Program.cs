@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 
 using XRPL.DataRippleService;
+using XRPL.DataRippleService.Balances;
 using XRPL.DataRippleService.Enums;
 using XRPL.DataRippleService.Exchanges;
 using XRPL.DataRippleService.Extensions;
@@ -27,34 +28,19 @@ static async Task Test_BookExchanges()
             Console.WriteLine(p.Item2);
         });
     var ripple = new DataRippleClient();
-    var request = new ExchangesRequest()
+    var request = new BalancesRequest()
     {
-        BaseCurrency = new RippleServiceCurrency()
-        {
-            CurrencyCode = "AnimaCoin",
-            Issuer = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj"
-        },
-        CounterCurrency = new RippleServiceCurrency(),
-        StartTime = DateTime.Now.Date,
-        EndTime = DateTime.Now
+        //Currency = "RLT",
+        //Counterparty = "rUetS7kbVYJZ76za5ywa1DgViNZMgT9Bvq",
+        Address = "rNcqT1tds4vdroichNKuTh3Ppd8KAdFHnN",
+        Date = DateTime.Now - TimeSpan.FromDays(10), Limit = 400
     };
-
-    var history = await ripple.Exchanges(request, progress);
-    //var history = await ripple.Exchanges(new ExchangesRequest()
-    //{
-    //    BaseCurrency = new RippleServiceCurrency()
-    //    {
-    //        Issuer = "rGQrZvndQsJV2S5cnSdiRFMPT1Fz1Ccvuj",
-    //        CurrencyCode = "AnimaCoin"
-    //    },
-    //    CounterCurrency = new RippleServiceCurrency()
-    //    {
-    //        CurrencyCode = "XRP"
-    //    },
-    //    StartTime = DateTime.Now.ToUniversalTime() - TimeSpan.FromHours(1),
-    //    EndTime = null,
-    //}, progress);
-    Console.WriteLine(JObject.Parse(JsonConvert.SerializeObject(history)));
+    
+    var responce = await ripple.AccountBalances(request, progress);
+    Console.WriteLine($"Server: {responce.Response.StatusCode}, message: {responce.Response.ReasonPhrase}");
+    Console.WriteLine(responce.HasData
+        ? JsonConvert.SerializeObject(responce.Data.balances)
+        : "NO DATA");
 
 }
 static async Task Test_AccountHistory()
@@ -67,7 +53,7 @@ static async Task Test_AccountHistory()
 
     var ripple = new DataRippleClient();
 
-    var history = await ripple.AccountExchanges(new AccounExchangesRequest()
+    var responce = await ripple.AccountExchanges(new AccounExchangesRequest()
     {
         Address = "rLiooJRSKeiNfRJcDBUhu4rcjQjGLWqa4p",
         BaseCurrency = new RippleServiceCurrency()
@@ -81,8 +67,10 @@ static async Task Test_AccountHistory()
         StartTime = new DateTime(2022, 05, 01),
         EndTime = DateTime.UtcNow
     }, progress);
-    Console.WriteLine(JObject.Parse(JsonConvert.SerializeObject(history)));
-
+    Console.WriteLine($"Server: {responce.Response.StatusCode}, message: {responce.Response.ReasonPhrase}");
+    Console.WriteLine(responce.HasData 
+        ? JsonConvert.SerializeObject(responce.Data.exchanges) 
+        : "NO DATA");
 }
 
 static async Task Test_AccountBalanceChanges()
@@ -94,7 +82,7 @@ static async Task Test_AccountBalanceChanges()
         {
             Console.WriteLine(p.Item2);
         });
-    var values = await ripple.AccountBalanceChangesJson(
+    var responce = await ripple.AccountBalanceChangesJson(
         new AccountBalanceChangesRequest()
         {
             Address = "rLiooJRSKeiNfRJcDBUhu4rcjQjGLWqa4p",
@@ -106,8 +94,16 @@ static async Task Test_AccountBalanceChanges()
             Descending = false,
             Limit = 100
         }, Progress: progress);
+    Console.WriteLine($"Server: {responce.Response.StatusCode}, message: {responce.Response.ReasonPhrase}");
+    if (responce.HasData)
+    {
+        var map = responce.Data.balance_changes.GroupByMaximumInDay().ToArray();
+        Console.WriteLine(JsonConvert.SerializeObject(map));
 
-    var map = values.GroupByMaximumInDay().ToArray();
-    Console.WriteLine(JsonConvert.SerializeObject(map));
+    }
+    else
+    {
+        Console.WriteLine("NO DATA");
+    }
 
 }

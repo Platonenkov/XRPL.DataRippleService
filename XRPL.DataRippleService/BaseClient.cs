@@ -1,5 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using System.Threading.Channels;
+
 using Newtonsoft.Json;
 
 namespace XRPL.DataRippleService;
@@ -41,13 +43,14 @@ public abstract class BaseClient
     /// <param name="url">адрес</param>
     /// <param name="Cancel">Признак отмены асинхронной операции</param>
     /// <returns></returns>
-    protected async Task<TEntity> GetAsync<TEntity>(string url, CancellationToken Cancel = default)
+    protected async Task<ServerResponse<TEntity>> GetAsync<TEntity>(string url, CancellationToken Cancel = default)
     {
         var response = await _Client.GetAsync(url, Cancel);
-        if (response.StatusCode == HttpStatusCode.NotFound || !response.IsSuccessStatusCode) return default;
+        var result = new ServerResponse<TEntity>(response);
+        if (response.StatusCode == HttpStatusCode.NotFound || !response.IsSuccessStatusCode) return result;
         Cancel.ThrowIfCancellationRequested();
-        var data = await response.Content.ReadAsStringAsync(cancellationToken: Cancel);
-        return string.IsNullOrWhiteSpace(data) ? default : JsonConvert.DeserializeObject<TEntity>(data, serializerSettings);
+        await result.ReadData(serializerSettings, Cancel);
+        return result;
     }
 
     /// <summary> Post </summary>
@@ -60,5 +63,26 @@ public abstract class BaseClient
     {
         var response = await _Client.PostAsJsonAsync(url, item, Cancel);
         return response.EnsureSuccessStatusCode();
+    }
+
+    public class ServerResponse<TEntity>
+    {
+        public ServerResponse(HttpResponseMessage Response)
+        {
+            this.Response = Response;
+        }
+        public HttpResponseMessage Response { get; set; }
+        public TEntity Data { get; set; }
+        public bool HasData => Response.IsSuccessStatusCode || Data is not null;
+        public async Task<TEntity?> ReadData(JsonSerializerSettings? serializerSettings = null, CancellationToken Cancel = default)
+        {
+            var data = await Response.Content.ReadAsStringAsync(cancellationToken: Cancel);
+            Data = string.IsNullOrWhiteSpace(data) 
+                ? default 
+                : serializerSettings is null 
+                    ? JsonConvert.DeserializeObject<TEntity>(data):
+                    JsonConvert.DeserializeObject<TEntity>(data, serializerSettings);
+            return Data;
+        }
     }
 }

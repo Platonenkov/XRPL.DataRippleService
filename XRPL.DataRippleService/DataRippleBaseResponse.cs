@@ -3,6 +3,6 @@
 public class DataRippleBaseResponse
 {
     public string result { get; set; }
-    public uint count { get; set; }
+    public int count { get; set; }
     public string marker { get; set; }
 }

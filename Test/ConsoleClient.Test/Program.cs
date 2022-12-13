@@ -11,9 +11,9 @@ using XRPL.DataRippleService.Request;
 
 
 
-await Test_BookExchanges();
+//await Test_BookExchanges();
 
-await Test_AccountHistory();
+//await Test_AccountHistory();
 await Test_AccountBalanceChanges();
 
 Console.WriteLine("Hello, from XrplDaddy!");
@@ -85,15 +85,15 @@ static async Task Test_AccountBalanceChanges()
     var responce = await ripple.AccountBalanceChangesJson(
         new AccountBalanceChangesRequest()
         {
-            Address = "rLiooJRSKeiNfRJcDBUhu4rcjQjGLWqa4p",
-            Currency = "MRM",
+            Address = "rPR1Pr5uiDHM7qEYcSPCwC9Kp8b82X59Hh",
+            Currency = "RPR",
             StartTime = null,
             EndTime = null,
             Format = DataRippleResponseFormat.csv,
-            counterparty = "rNjQ9HZYiBk1WhuscDkmJRSc3gbrBqqAaQ",
+            counterparty = "r3qWgpz2ry3BhcRJ8JE6rxM8esrfhuKp4R",
             Descending = false,
-            Limit = 100
-        }, Progress: progress);
+            Limit = 400
+        },SkipLimit:true, Progress: progress);
     Console.WriteLine($"Server: {responce.Response.StatusCode}, message: {responce.Response.ReasonPhrase}");
     if (responce.HasData)
     {

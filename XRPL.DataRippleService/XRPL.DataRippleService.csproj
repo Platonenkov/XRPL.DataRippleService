@@ -7,8 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup>
-    <Version>1.0.1.0</Version>
-    <PackageReleaseNotes>add Get account balances</PackageReleaseNotes>
+    <Version>1.0.1.1</Version>
+    <PackageReleaseNotes>fix account exchanges</PackageReleaseNotes>
     <SourceRevisionId>
       ^build_date$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))
     </SourceRevisionId>

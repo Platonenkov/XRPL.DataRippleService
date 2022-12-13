@@ -168,7 +168,7 @@ namespace XRPL.DataRippleService
                 counter = 0;
 
                 marker = new_response.Data.marker;
-                response.Data.balance_changes.AddRange(response.Data.balance_changes);
+                response.Data.balance_changes.AddRange(new_response.Data.balance_changes);
                 response.Data.count = response.Data.balance_changes.Count;
             }
 
